@@ -1,0 +1,56 @@
+<script type="text/javascript">
+  RED.nodes.registerType('twitch-eventsub-config', {
+    category: 'config',
+    defaults: {
+      name: { value: '', required: true },
+      port: { required: true, validate:RED.validators.number() },
+      broadcaster_id: { required: true, validate:RED.validators.number() },
+      client_id: { required: true },
+      client_secret: { required: true },
+      eventsub_secret: { required: true },
+      ngrok_token: { required: true },
+    },
+    inputs: 0,
+    outputs: 1,
+    label: function() {
+      return this.name;
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="twitch-eventsub-config">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="fa fa-tag"></i> Server Port</label>
+        <input type="text" id="node-config-input-port" placeholder="4000">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-broadcaster_id"><i class="fa fa-tag"></i> Twitch Broadcaster ID</label>
+        <input type="text" id="node-config-input-broadcaster_id" placeholder="ex: 86587418">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-client_id"><i class="fa fa-tag"></i> Twitch Client ID</label>
+        <input type="text" id="node-config-input-client_id" placeholder="ex: cnhszfrw4vbin9pziisb86oe9gsqds">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-client_secret"><i class="fa fa-lock"></i> Twitch Client Secret</label>
+        <input type="password" id="node-config-input-client_secret" placeholder="">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-eventsub_secret"><i class="fa fa-lock"></i> Twitch EventSub Secret</label>
+        <input type="password" id="node-config-input-eventsub_secret" placeholder="">
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-ngrok_token"><i class="fa fa-lock"></i>NGROK token</label>
+        <input type="password" id="node-config-input-ngrok_token" placeholder="">
+    </div>
+</script>

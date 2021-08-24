@@ -1,0 +1,31 @@
+<script type="text/javascript">
+  RED.nodes.registerType('twitch-eventsub', {
+    category: 'function',
+    color: '#D8BFD8',
+    defaults: {
+      config: {value:"", type:"twitch-eventsub-config"},
+    },
+    inputs: 0,
+    outputs: 1,
+    icon: 'file.png',
+    label: function() {
+      return this.name||'twitch-eventsub';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="twitch-eventsub">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-config"><i class="fa fa-tag"></i> Config</label>
+        <input type="text" id="node-input-config" placeholder="">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="twitch-eventsub">
+    <p>Twitch EventSub Node</p>
+</script>
