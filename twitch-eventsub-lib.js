@@ -165,7 +165,7 @@ module.exports = {
 		
 			}else{
 				console.log(LogStyle.FgCyan+"New EventSub (id:"+id+"): "+json.subscription.type+LogStyle.Reset);
-				onEvent(json.event);
+				onEvent(json);
 			}
 		});
 		
