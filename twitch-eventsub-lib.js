@@ -181,18 +181,22 @@ module.exports = {
 		 * unsubscribing to old ones.
 		 */
 		async function start() {
-			webhookUrl = await ngrok.connect({authtoken: NGROK_AUTH_TOKEN, addr:SERVER_PORT, proto:"http"});
+			try {
+				webhookUrl = await ngrok.connect({authtoken: NGROK_AUTH_TOKEN, addr:SERVER_PORT, proto:"http"});
 		
-			//Authenticated
-			await createTwitchClientCredentialToken();
-		
-			//Unsubs previous webhooks created by the twitch app
-			await unsubPrevious();
-		
-			//Subscribes to events with the newly created webhook URL
-			for (let i = 0; i < EVENTS_TO_SUB_TO.length; i++) {
-				await subToType(EVENTS_TO_SUB_TO[i]);
-				
+				//Authenticated
+				await createTwitchClientCredentialToken();
+			
+				//Unsubs previous webhooks created by the twitch app
+				await unsubPrevious();
+			
+				//Subscribes to events with the newly created webhook URL
+				for (let i = 0; i < EVENTS_TO_SUB_TO.length; i++) {
+					await subToType(EVENTS_TO_SUB_TO[i]);
+				}
+			}
+			catch(e) {
+				setTimeout(() => this.start(), 10000);
 			}
 		}
 		
