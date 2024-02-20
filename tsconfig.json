@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "target": "es5",
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "strict": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "/@/*": ["./src/*"],
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"]
+}

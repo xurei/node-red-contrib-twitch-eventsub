@@ -1,0 +1,98 @@
+<script type="text/javascript">
+  RED.nodes.registerType('twitch-eventsub-config', {
+    category: 'config',
+    defaults: {
+      name: { value: '', required: true },
+      broadcaster_id: { required: true, validate: RED.validators.number() },
+      twitch_client_id: { required: true },
+      twitch_auth_token: { required: true },
+      twitch_refresh_token: { required: true },
+      // /**/port: { required: true, validate: RED.validators.number() },
+      // /**/client_secret: { required: true },
+      // /**/eventsub_secret: { required: true },
+      // /**/ngrok_token: { required: true },
+    },
+    inputs: 0,
+    outputs: 1,
+    label: function() {
+      return this.name;
+    },
+  });
+</script>
+
+<style>
+  .red-ui-editor .form-row label, .red-ui-editor-dialog .form-row label {
+    width: 130px;
+  }
+  .twitch-eventsub-config-form a {
+    color: #55aaea;
+    text-decoration: underline;
+  }
+  .twitch-eventsub-config-form a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<script type="text/html" data-template-name="twitch-eventsub-config">
+    <div class="twitch-eventsub-config-form">
+        <div class="form-row">
+            <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+            <input type="text" id="node-config-input-name" placeholder="Name">
+        </div>
+
+    <!--    <div class="form-row">-->
+    <!--        <label for="node-config-input-port"><i class="fa fa-tag"></i> Server Port</label>-->
+    <!--        <input type="text" id="node-config-input-port" placeholder="4000">-->
+    <!--    </div>-->
+
+        <div class="form-row">
+            <label for="node-config-input-broadcaster_id"><i class="fa fa-tag"></i> Twitch Broadcaster ID</label>
+            <input type="text" id="node-config-input-broadcaster_id" placeholder="ex: 86587418">
+        </div>
+
+        <div class="form-row">
+            <label for="node-config-input-twitch_client_id"><i class="fa fa-tag"></i> Twitch Client ID</label>
+            <input type="text" id="node-config-input-twitch_client_id" placeholder="ex: cnhszfrw4vbin9pziisb86oe9gsqds">
+        </div>
+
+        <div class="form-row">
+            <label for="node-config-input-twitch_auth_token"><i class="fa fa-lock"></i> Twitch Auth Token</label>
+            <input type="password" id="node-config-input-twitch_auth_token" placeholder="">
+        </div>
+
+        <div class="form-row">
+            <label for="node-config-input-twitch_refresh_token"><i class="fa fa-lock"></i> Twitch Refresh Token</label>
+            <input type="password" id="node-config-input-twitch_refresh_token" placeholder="">
+        </div>
+
+        <p>
+            To generate the access token, use the
+            <a target="_blank" rel="noreferrer" href="https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#authorization-code-grant-flow">Authorization code grant flow</a>
+            with the following permissions :
+        </p>
+        <ul>
+            <li>bits:read</li>
+            <li>channel:read:goals</li>
+            <li>channel:read:polls</li>
+            <li>channel:read:predictions</li>
+            <li>channel:read:redemptions</li>
+            <li>channel:read:subscriptions</li>
+            <li>channel:read:vips</li>
+            <li>chat:read</li>
+            <li>moderation:read</li>
+            <li>moderator:read:followers</li>
+        </ul>
+        <p>
+            You can use the
+            <a target="_blank" rel="noreferrer" href="https://twitchtokengenerator.com/">
+                Twitch Token Generator App
+            </a>
+            to generate this token.
+        </p>
+
+    <!--    <div class="form-row">-->
+    <!--        <label for="node-config-input-eventsub_secret"><i class="fa fa-lock"></i> Twitch Refresh Token</label>-->
+    <!--        <input type="password" id="node-config-input-eventsub_secret" placeholder="">-->
+    <!--    </div>-->
+    </div>
+</script>

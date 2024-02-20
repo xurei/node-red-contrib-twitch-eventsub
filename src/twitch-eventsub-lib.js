@@ -196,7 +196,8 @@ module.exports = {
 				}
 			}
 			catch(e) {
-				setTimeout(() => this.start(), 10000);
+				console.log('NGROK FAIL');
+				//setTimeout(() => this.start(), 10000);
 			}
 		}
 		

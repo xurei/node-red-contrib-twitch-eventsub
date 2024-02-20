@@ -5,23 +5,34 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && npm run copy-static-assets",
+    "copy-static-assets": "node scripts/copy-static-assets.js"
   },
   "keywords": [
-    "twitch", "stream", "rewards"
+    "twitch",
+    "stream",
+    "rewards"
   ],
   "author": "xurei",
   "license": "MIT",
   "dependencies": {
+    "@twurple/api": "^7.0.8",
+    "@twurple/auth": "^7.0.8",
+    "@twurple/eventsub-ws": "^7.0.8",
     "crypto-js": "^4.0.0",
     "express": "^4.17.1",
     "ngrok": "^4.0.1",
     "node-fetch": "^2.6.1"
   },
-  "node-red" : {
+  "node-red": {
     "nodes": {
-      "twitch-eventsub": "twitch-eventsub.js",
-      "twitch-eventsub-config": "twitch-eventsub-config.js"
+      "twitch-eventsub": "dist/twitch-eventsub.js",
+      "twitch-eventsub-config": "dist/twitch-eventsub-config.js"
     }
+  },
+  "devDependencies": {
+    "shelljs": "^0.8.5",
+    "typescript": "^5.3.3"
   }
 }

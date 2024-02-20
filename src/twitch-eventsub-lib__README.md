@@ -11,10 +11,6 @@ npm install
 ```
 
 ## Accounts settings
-### NGrok
-Create an account on https://ngrok.com and get an auth token. Works with a free account.\
-Set the token as the `NGROK_AUTH_TOKEN` var value.
-
 ### Twitch app
 1. Create a twitch application here https://dev.twitch.tv/console. \
 \
