@@ -1,15 +1,22 @@
 <script type="text/javascript">
   RED.nodes.registerType('twitch-eventsub', {
-    category: 'function',
-    color: '#D8BFD8',
+    category: 'Twitch Eventsub',
+    color: '#9145FF',
     defaults: {
       config: {value:"", type:"twitch-eventsub-config"},
     },
     inputs: 0,
     outputs: 1,
-    icon: 'file.png',
+    icon: 'twitch-icon.png',
+    paletteLabel: "Eventsub",
     label: function() {
-      return this.name||'twitch-eventsub';
+      if (this.name) {
+        return this.name;
+      }
+      else {
+        var config = RED.nodes.node(this.config);
+        return 'Eventsub (' + (config ? config.name || '' : '') + ')';
+      }
     },
   });
 </script>
@@ -27,5 +34,109 @@
 </script>
 
 <script type="text/html" data-help-name="twitch-eventsub">
-    <p>Twitch EventSub Node</p>
+    <h2>Eventsub Listener</h2>
+    Connects to Twitch Eventsub with the help of Twurple, and send a message for each follow, sub, subgift, cheer, reward redeem, and raid.
+
+    <h3>Inputs</h3>
+    No inputs accepted. Messages will be generated from the Twitch API.
+
+    <h3>Outputs</h3>
+    <ol class="">
+        <li>Standard output
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>
+                    All events have these base fields:
+                    <ul>
+                        <li>
+                            <dt>eventType <i>string</i></dt>
+                            <dd>
+                                Type of event. One of these:
+                                <ul>
+                                    <li><code>"follow"</code></li>
+                                    <li><code>"subscribe"</code></li>
+                                    <li><code>"subscribeGift"</code></li>
+                                    <li><code>"bits"</code></li>
+                                    <li><code>"redeem"</code></li>
+                                    <li><code>"raid"</code></li>
+                                </ul>
+                            </dd>
+                        </li>
+                        <li>
+                            <dt>userId <i>number</i></dt>
+                            <dd>
+                                Id of the user responsible for the event.<br>
+                                In case of a raid, this is the id of the broadcaster raiding.<br>
+                                Otherwise, it is the id of the viewer.
+                            </dd>
+                        </li>
+                        <li>
+                            <dt>userName <i>string</i></dt>
+                            <dd>
+                                Username of the user responsible for the event.<br>
+                                In case of a raid, this is the username of the broadcaster raiding.<br>
+                                Otherwise, it is the username of the viewer.
+                            </dd>
+                        </li>
+                        <li>
+                            <dt>userDisplayName <i>string</i></dt>
+                            <dd>
+                                Display name of the user responsible for the event.<br>
+                                In case of a raid, this is the display name of the broadcaster raiding.<br>
+                                Otherwise, it is the display name of the viewer.
+                            </dd>
+                        </li>
+                    </ul>
+                    <br>
+                    <p>Depending on the eventType, some extra fields are provided:</p>
+                    <ul>
+                        <li>
+                            <code>follow</code>: (no extra field)
+                        </li>
+                        <li>
+                            <code>subscribe</code>:
+                            <ul>
+                                <li>tier <i>number</i></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code>subscribeGift</code>:
+                            <ul>
+                                <li>tier <i>number</i></li>
+                                <li>amount <i>number</i></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code>bits</code>:
+                            <ul>
+                                <li>amount <i>number</i></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code>redeem</code>:
+                            <ul>
+                                <li>rewardId <i>string</i></li>
+                                <li>rewardName <i>string</i></li>
+                                <li>
+                                    rewardMessage <i>string</i><br>
+                                    If no rewardMessage is provided, or if the user did not send any, an empty string is returned.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <code>raid</code>:
+                            <ul>
+                                <li>viewers <i>number</i></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://twurple.js.org/" target="_blank">Twurple docs</a></li>
+    </ul>
 </script>

@@ -1,12 +1,14 @@
-import {StaticAuthProvider} from '@twurple/auth';
+import {RefreshingAuthProvider} from '@twurple/auth';
 import {ApiClient} from '@twurple/api';
 import {EventSubWsListener} from '@twurple/eventsub-ws';
 
 type TwitchEvent = {
   eventType: string;
-  userId: string;
+  userId: number;
   userName: string;
+  userDisplayName: string;
 };
+type TwitchEventFollow = TwitchEvent;
 type TwitchEventRedeem = TwitchEvent & {
   rewardId: string;
   rewardName: string;
@@ -15,11 +17,11 @@ type TwitchEventRedeem = TwitchEvent & {
 type TwitchEventRaid = TwitchEvent & {
   viewers: number;
 };
-type TwitchEventsubService = TwitchEvent & {
-  tier: string;
+type TwitchEventsubSubscribe = TwitchEvent & {
+  tier: number;
 };
 type TwitchEventSubGift = TwitchEvent & {
-  tier: string;
+  tier: number;
   amount: number;
 };
 type TwitchEventBits = TwitchEvent & {
@@ -27,40 +29,44 @@ type TwitchEventBits = TwitchEvent & {
 };
 
 class TwitchEventsub {
-  accessToken = '';
-  apiClient!: ApiClient;
   userId?: number | null;
-  clientId: string;
+  authProvider: RefreshingAuthProvider;
+  apiClient!: ApiClient;
   listener!: EventSubWsListener;
 
   onEventCb?: (event: TwitchEvent) => void;
 
-  // onFollowCb?: (event: TwitchEvent) => void;
-  // onSubscriptionCb?: (event: TwitchEventsubService) => void;
-  // onSubscriptionGiftCb?: (event: TwitchEventSubGift) => void;
-  // onRaidCb?: (event: TwitchEventRaid) => void;
-  // onBitsCb?: (event: TwitchEventBits) => void;
-  // onRedeemCb?: (event: TwitchEventRedeem) => void;
   onAuthError?: () => void;
 
-  constructor(clientId: string, userId: number | null, accessToken: string) {
-    console.log('NEW TwitchEventsub', clientId, userId, accessToken);
-    this.clientId = clientId;
-    this.accessToken = accessToken;
+  constructor(userId: number, clientId: string, clientSecret: string) {
+    console.log('NEW TwitchEventsub', clientId, userId);
     this.userId = userId;
-    const authProvider = new StaticAuthProvider(this.clientId, this.accessToken);
-    this.apiClient = new ApiClient({ authProvider });
+    this.authProvider = new RefreshingAuthProvider({
+      clientId: clientId,
+      clientSecret: clientSecret,
+    });
+  }
+
+  async init(refreshToken: string) {
+    //@ts-ignore
+    await this.authProvider.addUserForToken({
+      accessToken: '',
+      refreshToken: refreshToken,
+    });
+
+    this.apiClient = new ApiClient({ authProvider: this.authProvider });
     this.listener = new EventSubWsListener({ apiClient: this.apiClient });
 
-    if (!userId) {
+    if (!this.userId) {
       return;
     }
 
-    this.listener.onChannelRedemptionAdd(userId, (event) => {
+    this.listener.onChannelRedemptionAdd(this.userId, (event) => {
       const payload: TwitchEventRedeem = {
         eventType: 'redeem',
-        userId: event.userId,
+        userId: parseInt(event.userId),
         userName: event.userName,
+        userDisplayName: event.userDisplayName,
         rewardId: event.rewardId,
         rewardName: event.rewardTitle,
         rewardMessage: event.input,
@@ -71,11 +77,12 @@ class TwitchEventsub {
       }
     });
 
-    this.listener.onChannelRaidTo(userId, (event) => {
+    this.listener.onChannelRaidTo(this.userId, (event) => {
       const payload: TwitchEventRaid = {
         eventType: 'raid',
-        userId: event.raidingBroadcasterId,
+        userId: parseInt(event.raidingBroadcasterId),
         userName: event.raidingBroadcasterName,
+        userDisplayName: event.raidedBroadcasterDisplayName,
         viewers: event.viewers,
       };
       console.log('RAID', JSON.stringify(payload, null, '  '));
@@ -84,12 +91,13 @@ class TwitchEventsub {
       }
     });
 
-    this.listener.onChannelSubscription(userId, (event) => {
-      const payload: TwitchEventsubService = {
+    this.listener.onChannelSubscription(this.userId, (event) => {
+      const payload: TwitchEventsubSubscribe = {
         eventType: 'subscribe',
-        userId: event.userId,
+        userId: parseInt(event.userId),
         userName: event.userName,
-        tier: event.tier,
+        userDisplayName: event.userDisplayName,
+        tier: parseInt(event.tier),
       };
       console.log('SUB', JSON.stringify(payload, null, '  '));
       if (this.onEventCb && !event.isGift) {
@@ -97,12 +105,13 @@ class TwitchEventsub {
       }
     });
 
-    this.listener.onChannelSubscriptionGift(userId, (event) => {
+    this.listener.onChannelSubscriptionGift(this.userId, (event) => {
       const payload: TwitchEventSubGift = {
         eventType: 'subscribeGift',
-        userId: event.gifterId,
+        userId: parseInt(event.gifterId),
         userName: event.gifterName,
-        tier: event.tier,
+        userDisplayName: event.gifterDisplayName,
+        tier: parseInt(event.tier),
         amount: event.amount,
       };
       console.log('SUBGIFT', JSON.stringify(payload, null, '  '));
@@ -111,11 +120,12 @@ class TwitchEventsub {
       }
     });
 
-    this.listener.onChannelFollow(userId, userId, (event) => {
-      const payload = {
-        eventType: 'bits',
-        userId: event.userId,
+    this.listener.onChannelFollow(this.userId, this.userId, (event) => {
+      const payload: TwitchEventFollow = {
+        eventType: 'follow',
+        userId: parseInt(event.userId),
         userName: event.userName,
+        userDisplayName: event.userDisplayName,
       };
       console.log('FOLLOW', JSON.stringify(payload, null, '  '));
       if (this.onEventCb) {
@@ -123,11 +133,12 @@ class TwitchEventsub {
       }
     });
 
-    this.listener.onChannelCheer(userId, (event) => {
+    this.listener.onChannelCheer(this.userId, (event) => {
       const payload: TwitchEventBits = {
         eventType: 'bits',
-        userId: event.userId ?? '',
-        userName: event.userName ?? '',
+        userId: parseInt(event.userId ?? '-1'),
+        userName: event.userName ?? 'anonymous',
+        userDisplayName: event.userDisplayName ?? 'Anonymous',
         amount: event.bits,
       };
       console.log('BITS', JSON.stringify(payload, null, '  '));
@@ -142,14 +153,6 @@ class TwitchEventsub {
         this.onAuthError();
       }
     });
-
-    // const onlineSubscription = this.listener.onStreamOnline(userId, e => {
-    //   console.log(`${e.broadcasterDisplayName} just went live!`);
-    // });
-    //
-    // const offlineSubscription = this.listener.onStreamOffline(userId, e => {
-    //   console.log(`${e.broadcasterDisplayName} just went offline`);
-    // });
   }
 
   start() {

@@ -28,5 +28,8 @@ module.exports = function(RED) {
       });
     };
   }
+  
+  EventSubNode.icon = 'twitch-icon.png';
+  
   RED.nodes.registerType("twitch-eventsub", EventSubNode);
 }
