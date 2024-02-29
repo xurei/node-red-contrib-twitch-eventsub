@@ -3,10 +3,12 @@
   "version": "0.0.1",
   "description": "Connect to Twitch EventSub API",
   "main": "index.js",
-  "private": true,
+  "homepage": "https://github.com/xurei/node-red-contrib-twitch-eventsub",
   "scripts": {
-    "build": "tsc && npm run copy-static-assets",
-    "copy-static-assets": "node scripts/copy-static-assets.js"
+    "build": "(rm -rf dist || true) && tsc && npm run copy-static-assets",
+    "copy-static-assets": "node scripts/copy-static-assets.js",
+
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "twitch",

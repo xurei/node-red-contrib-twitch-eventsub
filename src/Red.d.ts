@@ -1,6 +1,6 @@
 // Simple Node-RED type to avoid using any
 
-import {AbstractNode} from '/@/AbstractNode';
+import type {AbstractNode} from '/@/AbstractNode';
 
 export type Red = {
   nodes: {
