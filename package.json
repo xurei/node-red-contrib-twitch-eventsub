@@ -4,13 +4,15 @@
   "description": "Connect to Twitch EventSub API",
   "main": "index.js",
   "homepage": "https://github.com/xurei/node-red-contrib-twitch-eventsub",
+  "repository": "https://github.com/xurei/node-red-contrib-twitch-eventsub",
   "scripts": {
     "build": "(rm -rf dist || true) && tsc && npm run copy-static-assets",
     "copy-static-assets": "node scripts/copy-static-assets.js",
-
+    "node-red-check": "node-red-dev validate",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "node-red",
     "twitch",
     "stream",
     "rewards",
@@ -31,12 +33,17 @@
     "@twurple/eventsub-ws": "^7.0.8"
   },
   "node-red": {
+    "version": ">=2.0.0",
     "nodes": {
       "twitch-eventsub": "dist/twitch-eventsub.js",
       "twitch-eventsub-config": "dist/twitch-eventsub-config.js"
     }
   },
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "devDependencies": {
+    "node-red-dev": "^0.1.6",
     "shelljs": "^0.8.5",
     "typescript": "^5.3.3"
   }
