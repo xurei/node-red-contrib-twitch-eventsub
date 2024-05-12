@@ -1,6 +1,4 @@
 *
-!src/*
-!src/**
 !dist/*
 !dist/**
 !package-lock.json

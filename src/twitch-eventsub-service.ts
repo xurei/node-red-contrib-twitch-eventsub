@@ -2,6 +2,7 @@ import {RefreshingAuthProvider} from '@twurple/auth';
 import {ApiClient} from '@twurple/api';
 import {EventSubWsListener} from '@twurple/eventsub-ws';
 import type {EventSubSubscription} from '@twurple/eventsub-base/lib/subscriptions/EventSubSubscription';
+import {AbstractNode} from '/@/AbstractNode';
 
 type TwitchEvent = {
   eventType: string;
@@ -29,19 +30,27 @@ type TwitchEventBits = TwitchEvent & {
   amount: number;
 };
 
+type EventSubSubscriptionWithStatus = {
+  subscription: EventSubSubscription;
+  //statusPromise: Promise<void>;
+  updateStatus: (error: Error | null) => void;
+};
+
 class TwitchEventsub {
   userId?: number | null;
   authProvider: RefreshingAuthProvider;
   apiClient!: ApiClient;
   listener!: EventSubWsListener;
-  subscriptions: EventSubSubscription[] = [];
+  subscriptions: EventSubSubscriptionWithStatus[] = [];
+  node: AbstractNode;
 
   onEventCb?: (event: TwitchEvent) => void;
 
   onAuthError?: () => void;
 
-  constructor(userId: number, clientId: string, clientSecret: string) {
-    console.log('NEW TwitchEventsub', clientId, userId);
+  constructor(node: AbstractNode, userId: number, clientId: string, clientSecret: string) {
+    this.node = node;
+    this.node.log('NEW TwitchEventsub', clientId, userId);
     this.userId = userId;
     this.authProvider = new RefreshingAuthProvider({
       clientId: clientId,
@@ -49,134 +58,175 @@ class TwitchEventsub {
     });
   }
 
-  async init(refreshToken: string) {
+  async init(refreshToken: string): Promise<void> {
     //@ts-ignore
     await this.authProvider.addUserForToken({
       accessToken: '',
       refreshToken: refreshToken,
     });
 
-    this.apiClient = new ApiClient({ authProvider: this.authProvider });
-    this.listener = new EventSubWsListener({ apiClient: this.apiClient });
+    this.apiClient = new ApiClient({authProvider: this.authProvider});
+    this.listener = new EventSubWsListener({apiClient: this.apiClient});
 
     if (!this.userId) {
       return;
     }
 
-    this.subscriptions.push(
-      this.listener.onChannelRedemptionAdd(this.userId, (event) => {
-        const payload: TwitchEventRedeem = {
-          eventType: 'redeem',
-          userId: parseInt(event.userId),
-          userName: event.userName,
-          userDisplayName: event.userDisplayName,
-          rewardId: event.rewardId,
-          rewardName: event.rewardTitle,
-          rewardMessage: event.input,
-        };
-        console.log('REDEEM', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb) {
-          this.onEventCb(payload);
-        }
-      })
-    );
+    this.listener.onSubscriptionCreateSuccess((subscription) => {
+      this.node.log(`Subscription Created: ${subscription.id}`);
+      const subscriptionWithStatus = this.subscriptions.find(s => s.subscription.id === subscription.id);
+      if (subscriptionWithStatus) {
+        subscriptionWithStatus.updateStatus(null);
+      }
+    });
 
-    this.subscriptions.push(
-      this.listener.onChannelRaidTo(this.userId, (event) => {
-        const payload: TwitchEventRaid = {
-          eventType: 'raid',
-          userId: parseInt(event.raidingBroadcasterId),
-          userName: event.raidingBroadcasterName,
-          userDisplayName: event.raidedBroadcasterDisplayName,
-          viewers: event.viewers,
-        };
-        console.log('RAID', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb) {
-          this.onEventCb(payload);
+    this.listener.onSubscriptionCreateFailure((subscription, error) => {
+      this.node.error(`Subscription Failed: ${subscription.id}`);
+      const subscriptionWithStatus = this.subscriptions.find(s => s.subscription.id === subscription.id);
+      if (subscriptionWithStatus) {
+        const errMsgEndPos = error.message.indexOf(') and can not be upgraded.');
+        if (errMsgEndPos !== -1) {
+          error.message = error.message.substring(0, errMsgEndPos + 1);
         }
-      })
-    );
-
-    this.subscriptions.push(
-      this.listener.onChannelSubscription(this.userId, (event) => {
-        const payload: TwitchEventsubSubscribe = {
-          eventType: 'subscribe',
-          userId: parseInt(event.userId),
-          userName: event.userName,
-          userDisplayName: event.userDisplayName,
-          tier: parseInt(event.tier),
-        };
-        console.log('SUB', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb && !event.isGift) {
-          this.onEventCb(payload);
-        }
-      })
-    );
-
-    this.subscriptions.push(
-      this.listener.onChannelSubscriptionGift(this.userId, (event) => {
-        const payload: TwitchEventSubGift = {
-          eventType: 'subscribeGift',
-          userId: parseInt(event.gifterId),
-          userName: event.gifterName,
-          userDisplayName: event.gifterDisplayName,
-          tier: parseInt(event.tier),
-          amount: event.amount,
-        };
-        console.log('SUBGIFT', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb) {
-          this.onEventCb(payload);
-        }
-      })
-    );
-
-    this.subscriptions.push(
-      this.listener.onChannelFollow(this.userId, this.userId, (event) => {
-        const payload: TwitchEventFollow = {
-          eventType: 'follow',
-          userId: parseInt(event.userId),
-          userName: event.userName,
-          userDisplayName: event.userDisplayName,
-        };
-        console.log('FOLLOW', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb) {
-          this.onEventCb(payload);
-        }
-      })
-    );
-
-    this.subscriptions.push(
-      this.listener.onChannelCheer(this.userId, (event) => {
-        const payload: TwitchEventBits = {
-          eventType: 'bits',
-          userId: parseInt(event.userId ?? '-1'),
-          userName: event.userName ?? 'anonymous',
-          userDisplayName: event.userDisplayName ?? 'Anonymous',
-          amount: event.bits,
-        };
-        console.log('BITS', JSON.stringify(payload, null, '  '));
-        if (this.onEventCb) {
-          this.onEventCb(payload);
-        }
-      })
-    );
-
-    this.listener.onSubscriptionCreateFailure((event) => {
+        subscriptionWithStatus.updateStatus(error);
+      }
       if (this.onAuthError) {
-        console.log('ON AUTH ERROR');
+        this.node.log('ON AUTH ERROR');
         this.onAuthError();
       }
     });
   }
 
-  start() {
+  async addSubscriptions(): Promise<void> {
+    if (!this.userId) {
+      return;
+    }
+
+    const promises = Promise.all([
+      this.addSubscription(
+        this.listener.onChannelRedemptionAdd(this.userId, (event) => {
+          const payload: TwitchEventRedeem = {
+            eventType: 'redeem',
+            userId: parseInt(event.userId),
+            userName: event.userName,
+            userDisplayName: event.userDisplayName,
+            rewardId: event.rewardId,
+            rewardName: event.rewardTitle,
+            rewardMessage: event.input,
+          };
+          this.node.log('REDEEM', JSON.stringify(payload, null, '  '));
+          if (this.onEventCb) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+
+      this.addSubscription(
+        this.listener.onChannelRaidTo(this.userId, (event) => {
+          const payload: TwitchEventRaid = {
+            eventType: 'raid',
+            userId: parseInt(event.raidingBroadcasterId),
+            userName: event.raidingBroadcasterName,
+            userDisplayName: event.raidedBroadcasterDisplayName,
+            viewers: event.viewers,
+          };
+          this.node.log('RAID', JSON.stringify(payload, null, '  '));
+          if (this.onEventCb) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+
+      this.addSubscription(
+        this.listener.onChannelSubscription(this.userId, (event) => {
+          const payload: TwitchEventsubSubscribe = {
+            eventType: 'subscribe',
+            userId: parseInt(event.userId),
+            userName: event.userName,
+            userDisplayName: event.userDisplayName,
+            tier: parseInt(event.tier),
+          };
+          this.node.log('SUB', JSON.stringify(payload, null, '  '));
+          if (this.onEventCb && !event.isGift) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+
+      this.addSubscription(
+        this.listener.onChannelSubscriptionGift(this.userId, (event) => {
+          const payload: TwitchEventSubGift = {
+            eventType: 'subscribeGift',
+            userId: parseInt(event.gifterId),
+            userName: event.gifterName,
+            userDisplayName: event.gifterDisplayName,
+            tier: parseInt(event.tier),
+            amount: event.amount,
+          };
+          this.node.log('SUBGIFT', JSON.stringify(payload, null, '  '));
+          if (this.onEventCb) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+
+      this.addSubscription(
+        this.listener.onChannelFollow(this.userId, this.userId, (event) => {
+          const payload: TwitchEventFollow = {
+            eventType: 'follow',
+            userId: parseInt(event.userId),
+            userName: event.userName,
+            userDisplayName: event.userDisplayName,
+          };
+          this.node.log('FOLLOW', JSON.stringify(payload, null, '  '));
+          if (this.onEventCb) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+
+      this.addSubscription(
+        this.listener.onChannelCheer(this.userId, (event) => {
+          const payload: TwitchEventBits = {
+            eventType: 'bits',
+            userId: parseInt(event.userId ?? '-1'),
+            userName: event.userName ?? 'anonymous',
+            userDisplayName: event.userDisplayName ?? 'Anonymous',
+            amount: event.bits,
+          };
+          this.node.log(`BITS ${JSON.stringify(payload, null, '  ')}`);
+          if (this.onEventCb) {
+            this.onEventCb(payload);
+          }
+        })
+      ),
+    ]);
     this.listener.start();
+    await promises;
+  }
+
+  addSubscription(subscription: EventSubSubscription): Promise<void> {
+    this.node.log(`addSubscription: ${subscription.id}`);
+    return new Promise<void>((resolve, reject) => {
+      const updateStatus = (err: Error | null) => {
+        if (err) {
+          reject(err);
+        }
+        else {
+          resolve();
+        }
+      };
+      this.subscriptions.push({
+        subscription: subscription,
+        updateStatus: updateStatus,
+      });
+    });
   }
 
   stop() {
     this.listener.stop();
     this.subscriptions.forEach(subscription => {
-      subscription.stop();
+      subscription.subscription.stop();
     });
     this.subscriptions = [];
   }

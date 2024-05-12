@@ -22,7 +22,7 @@ module.exports = function(RED) {
       // TODO show error message if no config found
     }
 
-    node.triggerTwitchEvent = function (event) {
+    node.triggerTwitchEvent = function(event) {
       node.send({
         payload: event
       });

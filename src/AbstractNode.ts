@@ -22,11 +22,11 @@ export abstract class AbstractNode {
     status!: (status: NodeStatus) => void
 
     //########### BEGIN Log methods ##########
-    debug!: (msg: any) => void
-    error!: (err: string, msg: any) => void
-    log!: (msg: any) => void
-    warn!: (msg: any) => void
-    trace!: (msg: any) => void
+    debug!: (...msg: any[]) => void
+    error!: (...msg: any[]) => void
+    log!: (...msg: any[]) => void
+    warn!: (...msg: any[]) => void
+    trace!: (...msg: any[]) => void
     //########### END Log methods ##########
 
 
