@@ -1,6 +1,7 @@
 import {RefreshingAuthProvider} from '@twurple/auth';
 import {ApiClient} from '@twurple/api';
 import {EventSubWsListener} from '@twurple/eventsub-ws';
+import type {EventSubSubscription} from '@twurple/eventsub-base/lib/subscriptions/EventSubSubscription';
 
 type TwitchEvent = {
   eventType: string;
@@ -33,6 +34,7 @@ class TwitchEventsub {
   authProvider: RefreshingAuthProvider;
   apiClient!: ApiClient;
   listener!: EventSubWsListener;
+  subscriptions: EventSubSubscription[] = [];
 
   onEventCb?: (event: TwitchEvent) => void;
 
@@ -61,91 +63,103 @@ class TwitchEventsub {
       return;
     }
 
-    this.listener.onChannelRedemptionAdd(this.userId, (event) => {
-      const payload: TwitchEventRedeem = {
-        eventType: 'redeem',
-        userId: parseInt(event.userId),
-        userName: event.userName,
-        userDisplayName: event.userDisplayName,
-        rewardId: event.rewardId,
-        rewardName: event.rewardTitle,
-        rewardMessage: event.input,
-      };
-      console.log('REDEEM', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelRedemptionAdd(this.userId, (event) => {
+        const payload: TwitchEventRedeem = {
+          eventType: 'redeem',
+          userId: parseInt(event.userId),
+          userName: event.userName,
+          userDisplayName: event.userDisplayName,
+          rewardId: event.rewardId,
+          rewardName: event.rewardTitle,
+          rewardMessage: event.input,
+        };
+        console.log('REDEEM', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
-    this.listener.onChannelRaidTo(this.userId, (event) => {
-      const payload: TwitchEventRaid = {
-        eventType: 'raid',
-        userId: parseInt(event.raidingBroadcasterId),
-        userName: event.raidingBroadcasterName,
-        userDisplayName: event.raidedBroadcasterDisplayName,
-        viewers: event.viewers,
-      };
-      console.log('RAID', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelRaidTo(this.userId, (event) => {
+        const payload: TwitchEventRaid = {
+          eventType: 'raid',
+          userId: parseInt(event.raidingBroadcasterId),
+          userName: event.raidingBroadcasterName,
+          userDisplayName: event.raidedBroadcasterDisplayName,
+          viewers: event.viewers,
+        };
+        console.log('RAID', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
-    this.listener.onChannelSubscription(this.userId, (event) => {
-      const payload: TwitchEventsubSubscribe = {
-        eventType: 'subscribe',
-        userId: parseInt(event.userId),
-        userName: event.userName,
-        userDisplayName: event.userDisplayName,
-        tier: parseInt(event.tier),
-      };
-      console.log('SUB', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb && !event.isGift) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelSubscription(this.userId, (event) => {
+        const payload: TwitchEventsubSubscribe = {
+          eventType: 'subscribe',
+          userId: parseInt(event.userId),
+          userName: event.userName,
+          userDisplayName: event.userDisplayName,
+          tier: parseInt(event.tier),
+        };
+        console.log('SUB', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb && !event.isGift) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
-    this.listener.onChannelSubscriptionGift(this.userId, (event) => {
-      const payload: TwitchEventSubGift = {
-        eventType: 'subscribeGift',
-        userId: parseInt(event.gifterId),
-        userName: event.gifterName,
-        userDisplayName: event.gifterDisplayName,
-        tier: parseInt(event.tier),
-        amount: event.amount,
-      };
-      console.log('SUBGIFT', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelSubscriptionGift(this.userId, (event) => {
+        const payload: TwitchEventSubGift = {
+          eventType: 'subscribeGift',
+          userId: parseInt(event.gifterId),
+          userName: event.gifterName,
+          userDisplayName: event.gifterDisplayName,
+          tier: parseInt(event.tier),
+          amount: event.amount,
+        };
+        console.log('SUBGIFT', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
-    this.listener.onChannelFollow(this.userId, this.userId, (event) => {
-      const payload: TwitchEventFollow = {
-        eventType: 'follow',
-        userId: parseInt(event.userId),
-        userName: event.userName,
-        userDisplayName: event.userDisplayName,
-      };
-      console.log('FOLLOW', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelFollow(this.userId, this.userId, (event) => {
+        const payload: TwitchEventFollow = {
+          eventType: 'follow',
+          userId: parseInt(event.userId),
+          userName: event.userName,
+          userDisplayName: event.userDisplayName,
+        };
+        console.log('FOLLOW', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
-    this.listener.onChannelCheer(this.userId, (event) => {
-      const payload: TwitchEventBits = {
-        eventType: 'bits',
-        userId: parseInt(event.userId ?? '-1'),
-        userName: event.userName ?? 'anonymous',
-        userDisplayName: event.userDisplayName ?? 'Anonymous',
-        amount: event.bits,
-      };
-      console.log('BITS', JSON.stringify(payload, null, '  '));
-      if (this.onEventCb) {
-        this.onEventCb(payload);
-      }
-    });
+    this.subscriptions.push(
+      this.listener.onChannelCheer(this.userId, (event) => {
+        const payload: TwitchEventBits = {
+          eventType: 'bits',
+          userId: parseInt(event.userId ?? '-1'),
+          userName: event.userName ?? 'anonymous',
+          userDisplayName: event.userDisplayName ?? 'Anonymous',
+          amount: event.bits,
+        };
+        console.log('BITS', JSON.stringify(payload, null, '  '));
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })
+    );
 
     this.listener.onSubscriptionCreateFailure((event) => {
       if (this.onAuthError) {
@@ -157,6 +171,14 @@ class TwitchEventsub {
 
   start() {
     this.listener.start();
+  }
+
+  stop() {
+    this.listener.stop();
+    this.subscriptions.forEach(subscription => {
+      subscription.stop();
+    });
+    this.subscriptions = [];
   }
 }
 

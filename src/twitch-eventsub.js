@@ -1,6 +1,5 @@
 module.exports = function(RED) {
   function EventSubNode(config) {
-    console.log(config);
     RED.nodes.createNode(this, config);
     const node = this;
     

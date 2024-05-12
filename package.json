@@ -43,6 +43,7 @@
     "node": ">=14.0.0"
   },
   "devDependencies": {
+    "node-fetch": "^2.7.0",
     "node-red-dev": "^0.1.6",
     "shelljs": "^0.8.5",
     "typescript": "^5.3.3"

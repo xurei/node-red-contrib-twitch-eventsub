@@ -19,6 +19,11 @@ module.exports = function (RED: Red) {
       super(config, RED);
       this.twitchEventsub = new TwitchEventsub(config.broadcaster_id, config.twitch_client_id, config.twitch_client_secret);
 
+      this.on('close', () => {
+        console.log('Stopping twitch event listener');
+        this.twitchEventsub.stop();
+      });
+
       this.twitchEventsub.init(config.twitch_refresh_token).then(() => {
         console.log('Twitch auth success; adding event listener');
         this.twitchEventsub.onEventCb = (e) => {
