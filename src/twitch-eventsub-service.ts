@@ -37,6 +37,7 @@ type EventSubSubscriptionWithStatus = {
 };
 
 class TwitchEventsub {
+  clientId?: string | null;
   userId?: number | null;
   authProvider: RefreshingAuthProvider;
   apiClient!: ApiClient;
@@ -52,6 +53,7 @@ class TwitchEventsub {
     this.node = node;
     this.node.log('NEW TwitchEventsub', clientId, userId);
     this.userId = userId;
+    this.clientId = clientId;
     this.authProvider = new RefreshingAuthProvider({
       clientId: clientId,
       clientSecret: clientSecret,
@@ -200,12 +202,15 @@ class TwitchEventsub {
           }
         })
       ),
-    ]);
+    ].filter(p => !!p));
     this.listener.start();
     await promises;
   }
 
-  addSubscription(subscription: EventSubSubscription): Promise<void> {
+  async addSubscription(subscription: EventSubSubscription): Promise<void> {
+    if (!subscription) {
+      return;
+    }
     this.node.log(`addSubscription: ${subscription.id}`);
     return new Promise<void>((resolve, reject) => {
       const updateStatus = (err: Error | null) => {
@@ -223,12 +228,37 @@ class TwitchEventsub {
     });
   }
 
-  stop() {
-    this.listener.stop();
-    this.subscriptions.forEach(subscription => {
-      subscription.subscription.stop();
-    });
-    this.subscriptions = [];
+  async stop() {
+    try {
+      const tokenInfo = await this.authProvider.getAccessTokenForUser(this.userId ?? '');
+      await Promise.all(this.subscriptions.map(subscription => {
+        subscription.subscription.stop();
+        return this.deleteSubscription(tokenInfo?.accessToken, subscription.subscription._twitchId);
+      }));
+      this.subscriptions = [];
+      this.listener.stop();
+    }
+    catch (e) {
+      console.error('Failed to gracefully shutdown', e);
+    }
+  }
+
+  private deleteSubscription(accessToken: string | undefined, subscriptionId: string | undefined) {
+    if (!accessToken || !subscriptionId) {
+      return;
+    }
+    const myHeaders = new Headers();
+    myHeaders.append("Authorization", `Bearer ${accessToken}`);
+    myHeaders.append("Client-Id", this.clientId ?? '');
+
+    return fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`, {
+      method: 'DELETE',
+      headers: myHeaders,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(1000),
+    })
+    .then(response => response.text())
+    .catch(error => { console.log('error', error); return true; });
   }
 }
 

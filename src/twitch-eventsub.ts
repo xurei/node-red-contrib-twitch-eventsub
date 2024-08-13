@@ -13,8 +13,13 @@ module.exports = function(RED) {
       node.twitchConfig.addNode(id, node);
 
       // On Delete
-      node.on('close', function() {
-        node.twitchConfig.removeNode(id);
+      node.on('close', (removed: boolean, done: () => void) => {
+        if (removed) {
+          node.twitchConfig.removeNode(id, done);
+        }
+        else {
+          done();
+        }
       });
     }
     else {

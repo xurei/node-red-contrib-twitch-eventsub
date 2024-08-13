@@ -30,7 +30,8 @@
   "dependencies": {
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",
-    "@twurple/eventsub-ws": "^7.1.0"
+    "@twurple/eventsub-ws": "^7.1.0",
+    "node-fetch": "^2.7.0"
   },
   "node-red": {
     "version": ">=2.0.0",
@@ -43,7 +44,6 @@
     "node": ">=14.0.0"
   },
   "devDependencies": {
-    "node-fetch": "^2.7.0",
     "node-red-dev": "^0.1.6",
     "shelljs": "^0.8.5",
     "typescript": "^5.3.3"

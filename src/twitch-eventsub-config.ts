@@ -32,9 +32,8 @@ module.exports = function (RED: Red) {
       super(config, RED);
       this.config = config;
       this.twitchEventsub = new TwitchEventsub(this, config.broadcaster_id, config.twitch_client_id, config.twitch_client_secret);
-
-      this.on('close', () => {
-        this.takedown();
+      this.on('close', (done: () => void) => {
+        this.takedown().then(done);
       });
     }
 
@@ -80,15 +79,16 @@ module.exports = function (RED: Red) {
       this.initialized = true;
     }
 
-    takedown() {
+    async takedown() {
       this.log('Stopping twitch event listener');
-      this.twitchEventsub.stop();
+      await this.twitchEventsub.stop();
       this.updateStatus({
         fill: 'grey',
         shape: 'ring',
         text: 'Disconnected',
       });
       this.initialized = false;
+      this.log('Stopped twitch event listener');
     }
 
     updateStatus(status: Status) {
@@ -107,12 +107,12 @@ module.exports = function (RED: Red) {
       }
     }
 
-    removeNode(id: string): void {
-      this.log(`removeNode ${id}`);
+    async removeNode(id: string, done: () => void): Promise<void> {
       delete this.nodeListeners[id];
       if (Object.keys(this.nodeListeners).length === 0) {
-        this.takedown();
+        await this.takedown();
       }
+      done();
     }
   }
 
