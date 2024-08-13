@@ -3,12 +3,14 @@ import {ApiClient} from '@twurple/api';
 import {EventSubWsListener} from '@twurple/eventsub-ws';
 import type {EventSubSubscription} from '@twurple/eventsub-base/lib/subscriptions/EventSubSubscription';
 import {AbstractNode} from '/@/AbstractNode';
+import {DataObject, getRawData} from '@twurple/common';
 
 type TwitchEvent = {
   eventType: string;
   userId: number;
-  userName: string;
-  userDisplayName: string;
+  userName?: string;
+  userDisplayName?: string;
+  rawEvent: unknown;
 };
 type TwitchEventFollow = TwitchEvent;
 type TwitchEventRedeem = TwitchEvent & {
@@ -115,6 +117,7 @@ class TwitchEventsub {
             rewardId: event.rewardId,
             rewardName: event.rewardTitle,
             rewardMessage: event.input,
+            rawEvent: getRawData(event),
           };
           this.node.log('REDEEM', JSON.stringify(payload, null, '  '));
           if (this.onEventCb) {
@@ -131,6 +134,7 @@ class TwitchEventsub {
             userName: event.raidingBroadcasterName,
             userDisplayName: event.raidingBroadcasterDisplayName,
             viewers: event.viewers,
+            rawEvent: getRawData(event),
           };
           this.node.log('RAID', JSON.stringify(payload, null, '  '));
           if (this.onEventCb) {
@@ -147,6 +151,7 @@ class TwitchEventsub {
             userName: event.userName,
             userDisplayName: event.userDisplayName,
             tier: parseInt(event.tier),
+            rawEvent: getRawData(event),
           };
           this.node.log('SUB', JSON.stringify(payload, null, '  '));
           if (this.onEventCb && !event.isGift) {
@@ -164,6 +169,7 @@ class TwitchEventsub {
             userDisplayName: event.gifterDisplayName,
             tier: parseInt(event.tier),
             amount: event.amount,
+            rawEvent: getRawData(event),
           };
           this.node.log('SUBGIFT', JSON.stringify(payload, null, '  '));
           if (this.onEventCb) {
@@ -179,6 +185,7 @@ class TwitchEventsub {
             userId: parseInt(event.userId),
             userName: event.userName,
             userDisplayName: event.userDisplayName,
+            rawEvent: getRawData(event),
           };
           this.node.log('FOLLOW', JSON.stringify(payload, null, '  '));
           if (this.onEventCb) {
@@ -195,6 +202,7 @@ class TwitchEventsub {
             userName: event.userName ?? 'anonymous',
             userDisplayName: event.userDisplayName ?? 'Anonymous',
             amount: event.bits,
+            rawEvent: getRawData(event),
           };
           this.node.log(`BITS ${JSON.stringify(payload, null, '  ')}`);
           if (this.onEventCb) {
