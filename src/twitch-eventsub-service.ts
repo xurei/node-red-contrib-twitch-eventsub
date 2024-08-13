@@ -106,7 +106,24 @@ class TwitchEventsub {
       return;
     }
 
+    const createEvent = <R extends DataObject<unknown>>(eventType: string) => {
+      return (event: R) => {
+        const payload: TwitchEvent = {
+          eventType: eventType,
+          userId: (event as any).userId ?? this.userId,
+          rawEvent: getRawData(event),
+        };
+        payload.userId = parseInt(`${payload.userId}`);
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      };
+    };
+
     const promises = Promise.all([
+      this.addSubscription(this.listener.onStreamOnline(this.userId, createEvent('streamOnline'))),
+      this.addSubscription(this.listener.onStreamOffline(this.userId, createEvent('streamOffline'))),
+      this.addSubscription(this.listener.onChannelChatMessage(this.userId, this.userId, createEvent('chatMessage'))),
       this.addSubscription(
         this.listener.onChannelRedemptionAdd(this.userId, (event) => {
           const payload: TwitchEventRedeem = {

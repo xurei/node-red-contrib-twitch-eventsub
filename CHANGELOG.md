@@ -5,12 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Fixed
-- Fixed Raid event handler returning the raided display name instead of the raiding display name
+### Added
+- Event: streamOnline, streamOffline
+- Event: chatMessage
 
 ### Changed
 - The legacy events now have a `rawEvent` field, which will be the default on new ones
 - Improved the disconnection flow
+
+### Fixed
+- Fixed Raid event handler returning the raided display name instead of the raiding display name
 
 ## [0.0.2] - 2024-05-13
 ### Added

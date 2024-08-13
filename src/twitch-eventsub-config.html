@@ -69,11 +69,14 @@
         <p>
             To generate the Refresh Token, use the
             <a target="_blank" rel="noreferrer" href="https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#authorization-code-grant-flow">Authorization code grant flow</a>
-            with the following permissions :
+            with the following scopes :
         </p>
         <ul>
             <li>bits:read</li>
+            <li>channel:read:charity</li>
             <li>channel:read:goals</li>
+            <li>channel:read:guest_star</li>
+            <li>channel:read:hype_train</li>
             <li>channel:read:polls</li>
             <li>channel:read:predictions</li>
             <li>channel:read:redemptions</li>
@@ -81,7 +84,19 @@
             <li>channel:read:vips</li>
             <li>chat:read</li>
             <li>moderation:read</li>
+            <li>moderator:manage:blocked_terms</li>
+            <li>moderator:manage:chat_messages</li>
+            <li>moderator:manage:unban_requests</li>
+            <li>moderator:read:automod_settings</li>
+            <li>moderator:read:blocked_terms</li>
+            <li>moderator:read:chat_settings</li>
             <li>moderator:read:followers</li>
+            <li>moderator:read:guest_star</li>
+            <li>moderator:read:shield_mode</li>
+            <li>moderator:read:shoutouts</li>
+            <li>moderator:read:suspicious_users</li>
+            <li>moderator:read:unban_requests</li>
+            <li>user:read:chat</li>
         </ul>
         <p>
             You can use the
@@ -89,6 +104,16 @@
                 Twitch Token Generator App
             </a>
             to generate this token.
+
+            <ol>
+                <li>Go to <a target="_blank" rel="noreferrer" href="https://twitchtokengenerator.com/quick/JrBQbPTS3L">this Quicklink</a>.</li>
+                <li>Click on "Custom bot token"</li>
+                <li>(Optionnal) Fill in your <strong>Client secret</strong> and <strong>Client ID</strong></li>
+                <li>All the required scopes should have been pre-selected</li>
+                <li>Click on "Generate Token!" at the end of the page</li>
+                <li>Authorize the app within Twitch</li>
+                <li>Copy the generated Refresh Token</li>
+            </ol>
         </p>
 
         <p>
