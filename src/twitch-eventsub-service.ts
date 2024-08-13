@@ -127,7 +127,7 @@ class TwitchEventsub {
             eventType: 'raid',
             userId: parseInt(event.raidingBroadcasterId),
             userName: event.raidingBroadcasterName,
-            userDisplayName: event.raidedBroadcasterDisplayName,
+            userDisplayName: event.raidingBroadcasterDisplayName,
             viewers: event.viewers,
           };
           this.node.log('RAID', JSON.stringify(payload, null, '  '));
