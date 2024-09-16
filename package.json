@@ -1,6 +1,6 @@
 {
   "name": "@xureilab/node-red-twitch-eventsub",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Connect to Twitch EventSub API",
   "main": "index.js",
   "homepage": "https://github.com/xurei/node-red-contrib-twitch-eventsub",
