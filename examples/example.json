@@ -1,0 +1,40 @@
+[
+  {
+    "id": "93f32cdccc7a8980",
+    "type": "twitch-eventsub",
+    "z": "5a91292e1414d67f",
+    "config": "baeb5701833381a7",
+    "x": 200,
+    "y": 600,
+    "wires": [
+      [
+        "e4241a0d10fcebce"
+      ]
+    ]
+  },
+  {
+    "id": "e4241a0d10fcebce",
+    "type": "debug",
+    "z": "5a91292e1414d67f",
+    "name": "debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "false",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 440,
+    "y": 600,
+    "wires": []
+  },
+  {
+    "id": "baeb5701833381a7",
+    "type": "twitch-eventsub-config",
+    "name": "my_twitch_username",
+    "broadcaster_id": "12345678",
+    "twitch_client_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "twitch_client_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "twitch_refresh_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  }
+]
