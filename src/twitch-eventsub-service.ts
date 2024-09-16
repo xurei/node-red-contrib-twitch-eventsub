@@ -3,13 +3,15 @@ import {ApiClient} from '@twurple/api';
 import {EventSubWsListener} from '@twurple/eventsub-ws';
 import type {EventSubSubscription} from '@twurple/eventsub-base/lib/subscriptions/EventSubSubscription';
 import {AbstractNode} from '/@/AbstractNode';
-import {DataObject, getRawData} from '@twurple/common';
+import {DataObject, getRawData, type UserIdResolvable} from '@twurple/common';
+import {HelixUser} from '@twurple/api/lib/endpoints/user/HelixUser';
+import {EventSubListener} from '@twurple/eventsub-base';
 
 type TwitchEvent = {
   eventType: string;
   userId: number;
-  userName?: string;
-  userDisplayName?: string;
+  userName?: string | null | undefined;
+  userDisplayName?: string | null | undefined;
   rawEvent: unknown;
 };
 type TwitchEventFollow = TwitchEvent;
@@ -31,6 +33,9 @@ type TwitchEventSubGift = TwitchEvent & {
 type TwitchEventBits = TwitchEvent & {
   amount: number;
 };
+type TwitchEventStreamOnline = TwitchEvent & {
+  streamDetails: unknown;
+};
 
 type EventSubSubscriptionWithStatus = {
   subscription: EventSubSubscription;
@@ -38,9 +43,15 @@ type EventSubSubscriptionWithStatus = {
   updateStatus: (error: Error | null) => void;
 };
 
+function renameEventFromFnName(fname: string) {
+  fname = fname.substring(2);
+  return `${fname[0].toLowerCase()}${fname.substring(1)}`;
+}
+
 class TwitchEventsub {
   clientId?: string | null;
   userId?: number | null;
+  user!: HelixUser | null;
   authProvider: RefreshingAuthProvider;
   apiClient!: ApiClient;
   listener!: EventSubWsListener;
@@ -63,6 +74,10 @@ class TwitchEventsub {
   }
 
   async init(refreshToken: string): Promise<void> {
+    if (!this.userId) {
+      return;
+    }
+
     //@ts-ignore
     await this.authProvider.addUserForToken({
       accessToken: '',
@@ -72,9 +87,7 @@ class TwitchEventsub {
     this.apiClient = new ApiClient({authProvider: this.authProvider});
     this.listener = new EventSubWsListener({apiClient: this.apiClient});
 
-    if (!this.userId) {
-      return;
-    }
+    this.user = await this.apiClient.users.getUserById(this.userId ?? 0);
 
     this.listener.onSubscriptionCreateSuccess((subscription) => {
       this.node.log(`Subscription Created: ${subscription.id}`);
@@ -110,7 +123,9 @@ class TwitchEventsub {
       return (event: R) => {
         const payload: TwitchEvent = {
           eventType: eventType,
-          userId: (event as any).userId ?? this.userId,
+          userId: this.userId ?? 0,
+          userName: this.user?.name,
+          userDisplayName: this.user?.displayName,
           rawEvent: getRawData(event),
         };
         payload.userId = parseInt(`${payload.userId}`);
@@ -120,10 +135,56 @@ class TwitchEventsub {
       };
     };
 
+    const hardCodedSubFunctions: string[] = [
+      'onSubscriptionCreateSuccess',
+      'onSubscriptionCreateFailure',
+      'onStreamOnline',
+      'onChannelRedemptionAdd',
+      'onChannelRaidTo',
+      'onChannelSubscription',
+      'onChannelSubscriptionGift',
+      'onChannelFollow',
+      'onChannelCheer',
+    ];
+    const ignoredSubFunctions: string[] = [
+      'onChannelRewardUpdateForReward', // arg is reward Id, needs to be hardcoded or transformer updated
+      'onChannelRewardRemoveForReward', // arg is reward Id, needs to be hardcoded or transformer updated
+      'onChannelRedemptionAddForReward', // arg is reward Id, needs to be hardcoded or transformer updated
+      'onChannelRedemptionUpdateForReward', // arg is reward Id, needs to be hardcoded or transformer updated
+    ];
+
+    const subscriptionFns0Arg = (
+      // @ts-expect-error returns all functions matching the second argument; See transformers/getKeysOfType.ts
+      getKeysOfType<EventSubListener, (user: UserIdResolvable, handler: (event: DataObject<unknown>) => void) => EventSubSubscription>()
+        .filter((f: string) => f.startsWith('on') && !hardCodedSubFunctions.includes(f))
+    );
+    const subscriptionFns1Arg = (
+      // @ts-expect-error returns all functions matching the second argument; See transformers/getKeysOfType.ts
+      getKeysOfType<EventSubListener, (user: UserIdResolvable, other: string, handler: (event: DataObject<unknown>) => void) => EventSubSubscription>()
+        .filter((f: string) => f.startsWith('on') && !hardCodedSubFunctions.includes(f))
+        .filter((f: string) => !ignoredSubFunctions.includes(f))
+    );
+    this.node.log('Currently ignored 1arg subscriptions:\n', '- ' + ignoredSubFunctions.join('\n - '));
+
     const promises = Promise.all([
-      this.addSubscription(this.listener.onStreamOnline(this.userId, createEvent('streamOnline'))),
-      this.addSubscription(this.listener.onStreamOffline(this.userId, createEvent('streamOffline'))),
-      this.addSubscription(this.listener.onChannelChatMessage(this.userId, this.userId, createEvent('chatMessage'))),
+      this.addSubscription(this.listener.onStreamOnline(this.userId, async (event) => {
+        //createEvent('streamOnline')
+        //this.node.log('STREAM ONLINE');
+        const streamDetails = await event.getStream();
+        const payload: TwitchEventStreamOnline = {
+          eventType: 'streamOnline',
+          userId: this.userId ?? 0,
+          userName: this.user?.name,
+          userDisplayName: this.user?.displayName,
+          streamDetails: streamDetails ? getRawData(streamDetails) : null,
+          rawEvent: getRawData(event),
+        };
+        payload.userId = parseInt(`${payload.userId}`);
+        if (this.onEventCb) {
+          this.onEventCb(payload);
+        }
+      })),
+      //this.addSubscription(this.listener.onA(this.userId, createEvent('streamOffline'))),
       this.addSubscription(
         this.listener.onChannelRedemptionAdd(this.userId, (event) => {
           const payload: TwitchEventRedeem = {
@@ -228,12 +289,44 @@ class TwitchEventsub {
         })
       ),
     ].filter(p => !!p));
+
+    const autogen0ArgPromises = Promise.all(subscriptionFns0Arg.map(async (fname: string) => {
+      if (!this.userId) {
+        return null;
+      }
+      const fn: (user: UserIdResolvable, handler: (event: DataObject<unknown>) => void) => EventSubSubscription = this.listener[fname];
+      const eventName = renameEventFromFnName(fname);
+      try {
+        return await this.addSubscription(fn.bind(this.listener)(this.userId, createEvent(eventName)));
+      }
+      catch (e) {
+        console.error(e);
+      }
+    }).filter(p => !!p));
+
+    const autogen1ArgPromises = Promise.all(subscriptionFns1Arg.map(async (fname: string) => {
+      if (!this.userId) {
+        return null;
+      }
+      const fn: (user: UserIdResolvable, other: UserIdResolvable, handler: (event: DataObject<unknown>) => void) => EventSubSubscription = this.listener[fname];
+      const eventName = renameEventFromFnName(fname);
+      try {
+        return await this.addSubscription(fn.bind(this.listener)(this.userId, this.userId, createEvent(eventName)));
+      }
+      catch (e) {
+        console.error(e);
+      }
+    }).filter(p => !!p));
+
     this.listener.start();
     await promises;
+    await autogen0ArgPromises;
+    await autogen1ArgPromises;
   }
 
   async addSubscription(subscription: EventSubSubscription): Promise<void> {
     if (!subscription) {
+      this.node.log('No subscription');
       return;
     }
     this.node.log(`addSubscription: ${subscription.id}`);
@@ -255,20 +348,22 @@ class TwitchEventsub {
 
   async stop() {
     try {
+      this.node.log('Stopping TwitchEventsub...');
       const tokenInfo = await this.authProvider.getAccessTokenForUser(this.userId ?? '');
       await Promise.all(this.subscriptions.map(subscription => {
         subscription.subscription.stop();
         return this.deleteSubscription(tokenInfo?.accessToken, subscription.subscription._twitchId);
       }));
       this.subscriptions = [];
-      this.listener.stop();
+      this.listener?.stop();
     }
     catch (e) {
       console.error('Failed to gracefully shutdown', e);
     }
   }
 
-  private deleteSubscription(accessToken: string | undefined, subscriptionId: string | undefined) {
+  private async deleteSubscription(accessToken: string | undefined, subscriptionId: string | undefined) {
+    //console.log('delete', subscriptionId);
     if (!accessToken || !subscriptionId) {
       return;
     }
@@ -276,7 +371,7 @@ class TwitchEventsub {
     myHeaders.append("Authorization", `Bearer ${accessToken}`);
     myHeaders.append("Client-Id", this.clientId ?? '');
 
-    return fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`, {
+    await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`, {
       method: 'DELETE',
       headers: myHeaders,
       redirect: 'follow',
@@ -284,6 +379,7 @@ class TwitchEventsub {
     })
     .then(response => response.text())
     .catch(error => { console.log('error', error); return true; });
+    //console.log('deleted', subscriptionId);
   }
 }
 

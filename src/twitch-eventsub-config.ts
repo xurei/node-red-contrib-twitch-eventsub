@@ -92,6 +92,9 @@ module.exports = function (RED: Red) {
     }
 
     updateStatus(status: Status) {
+      if (status.fill === 'red') {
+        console.error(status.text);
+      }
       this.currentStatus = status;
       Object.values(this.nodeListeners).forEach(node => {
         (node as any).status(status);
