@@ -1,6 +1,7 @@
 *
 !dist/*
 !dist/**
+!examples/*
 !package-lock.json
 !CHANGELOG.md
 !README.md
